@@ -77,16 +77,23 @@ static int sendbreak_init(struct cmd *cmd, int argc, char *argv[])
 
 	if (optind != argc - 1) {
 		fprintf(stderr, "Please specify the tty device");
-		return -EINVAL;
+		ret = -EINVAL;
+		goto e_exit;
 	}
 
 	pdata->fd = open(argv[optind], O_RDWR | O_NOCTTY);
-	if (pdata->fd < 0)
-		return -ENOENT;
+	if (pdata->fd < 0) {
+		ret = -ENOENT;
+		goto e_exit;
+	}
 
 	cmd->priv = (void *) pdata;
 
 	return 0;
+
+e_exit:
+	free(pdata);
+	return ret;
 }
 
 static int sendbreak_exec(struct cmd *cmd)
