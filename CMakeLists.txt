@@ -7,7 +7,7 @@ add_executable(uart-test
 	src/sendbreak.c
 	src/waitbreak.c
 	src/ping.c
-	src/iovec.c)
+	src/buffer.c)
 
 target_link_libraries(uart-test pthread)
 

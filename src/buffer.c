@@ -24,6 +24,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,10 +37,13 @@
 #define MAX_BUFFERS 5
 #define MAX_CHARS   10
 
+const char alignment_help[] = "Usage:\n"
+	"\t uart_test alignment [options] <ttyDevice>\n";
+
 const char iovec_help[] = "Usage:\n"
 	"\t uart_test iovec [options] <ttyDevice>\n";
 
-struct iovec_data {
+struct buffer_data {
 	int receiver;
 	int fd;
 };
@@ -52,12 +56,12 @@ char *test_str[] = {
 	"to us!\n"
 };
 
-static int iovec_init(struct cmd *cmd, int argc, char *argv[])
+static int buffer_init(struct cmd *cmd, int argc, char *argv[])
 {
 	int ret, c;
-	struct iovec_data *pdata;
+	struct buffer_data *pdata;
 
-	pdata = (struct iovec_data *)calloc(1, sizeof(struct iovec_data));
+	pdata = (struct buffer_data *)calloc(1,	sizeof(struct buffer_data));
 	if (!pdata)
 		return -ENOMEM;
 
@@ -113,7 +117,7 @@ e_exit:
 
 static int iovec_exec(struct cmd *cmd)
 {
-	struct iovec_data *pdata = (struct iovec_data *)cmd->priv;
+	struct buffer_data *pdata = (struct buffer_data *)cmd->priv;
 	ssize_t count;
 	struct iovec iov[MAX_BUFFERS];
 	int i, ret = 0;
@@ -165,7 +169,63 @@ e_exit:
 	return ret;
 }
 
-static int iovec_cleanup(struct cmd *cmd)
+static int alignment_exec(struct cmd *cmd)
+{
+	struct buffer_data *pdata = (struct buffer_data *)cmd->priv;
+	char *pbuffer;
+	ssize_t count;
+	int ret = 0;
+
+	if (!pdata)
+		return -EINVAL;
+
+	pbuffer = calloc(1, 100);
+
+	if (pdata->receiver) {
+		int i;
+		char *send_buf = pbuffer + 3;
+
+		if (((uintptr_t)send_buf & 0x3) != 3) {
+			fprintf(stderr, "Failed to create un-aligned buffer\n");
+			ret = -EINVAL;
+			goto e_exit;
+		}
+
+		count = read(pdata->fd, send_buf, 10);
+		if (count < 0) {
+			ret = -errno;
+			goto e_exit;
+		}
+
+		for (i = 0; i < 10; i++) {
+			if (send_buf[i] != 'a') {
+				ret = -EINVAL;
+				goto e_exit;
+			}
+		}
+	} else {
+		char *recv_buf = pbuffer + 1;
+
+		if (((uintptr_t)recv_buf & 0x3) != 1) {
+			fprintf(stderr, "Failed to create un-aligned buffer\n");
+			ret = -EINVAL;
+			goto e_exit;
+		}
+
+		memset(recv_buf, 'a', 99);
+		count = write(pdata->fd, recv_buf, 10);
+		if (count < 0) {
+			ret = -errno;
+			goto e_exit;
+		}
+	}
+
+e_exit:
+	free(pbuffer);
+	return ret;
+}
+
+static int buffer_cleanup(struct cmd *cmd)
 {
 	struct ping_data *pdata = (struct ping_data *)cmd->priv;
 
@@ -181,7 +241,16 @@ REGISTER_CMD(
 	iovec,
 	"iovec test over a serial line",
 	iovec_help,
-	iovec_init,
+	buffer_init,
 	iovec_exec,
-	iovec_cleanup
+	buffer_cleanup
+);
+
+REGISTER_CMD(
+	alignment,
+	"alignment test over a serial line",
+	alignment_help,
+	buffer_init,
+	alignment_exec,
+	buffer_cleanup
 );
