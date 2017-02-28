@@ -293,17 +293,18 @@ static int ping_cleanup(struct cmd *cmd)
 
 
 	if (!pdata) {
-		printf("Check1\n");
 		return -EINVAL;
 	}
+	
+	if (pdata->sender_id)
+		pthread_join(pdata->sender_id, &sender_ret);
 
-	pthread_join(pdata->sender_id, &sender_ret);
-	pthread_join(pdata->receiver_id, &receiver_ret);
+	if (pdata->receiver_id)
+		pthread_join(pdata->receiver_id, &receiver_ret);
 
 	if (!pdata->server) {
 		if (!sender_ret) {
 			retval = -EINVAL;
-			printf("Check2\n");
 			goto e_exit;
 		}
 
