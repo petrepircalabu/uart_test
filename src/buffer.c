@@ -37,10 +37,10 @@
 #define MAX_BUFFERS 5
 #define MAX_CHARS   10
 
-const char alignment_help[] = "Usage:\n"
+static const char alignment_help[] = "Usage:\n"
 	"\t uart_test alignment [options] <ttyDevice>\n";
 
-const char iovec_help[] = "Usage:\n"
+static const char iovec_help[] = "Usage:\n"
 	"\t uart_test iovec [options] <ttyDevice>\n";
 
 struct buffer_data {
@@ -48,7 +48,7 @@ struct buffer_data {
 	int fd;
 };
 
-char *test_str[] = {
+static char *test_str[] = {
 	"All ",
 	"your ",
 	"base ",
