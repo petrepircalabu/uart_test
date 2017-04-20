@@ -47,7 +47,7 @@ int execute_cmd(struct cmd *p_cmd, int argc, char *argv[])
 	if (p_cmd->init) {
 		ret = p_cmd->init(p_cmd, argc, argv);
 		if (ret != 0) {
-			fprintf(stderr, "Failed to init %s\n", p_cmd->name);
+			fprintf(stderr, "%s: init returned %d\n", p_cmd->name, ret);
 			return ret;
 		}
 	}
@@ -55,7 +55,7 @@ int execute_cmd(struct cmd *p_cmd, int argc, char *argv[])
 	if (p_cmd->exec) {
 		ret = p_cmd->exec(p_cmd);
 		if (ret != 0) {
-			fprintf(stderr, "Failed to execute %s\n", p_cmd->name);
+			fprintf(stderr, "%s: execute returned %d\n", p_cmd->name, ret);
 			return ret;
 		}
 	}
@@ -63,7 +63,7 @@ int execute_cmd(struct cmd *p_cmd, int argc, char *argv[])
 	if (p_cmd->cleanup) {
 		ret = p_cmd->cleanup(p_cmd);
 		if (ret != 0) {
-			fprintf(stderr, "Failed to cleanup %s\n", p_cmd->name);
+			fprintf(stderr, "%s: cleanup returned %d\n", p_cmd->name, ret);
 			return ret;
 		}
 	}

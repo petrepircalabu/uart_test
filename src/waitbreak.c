@@ -49,7 +49,7 @@ struct waitbreak_data {
 static int waitbreak_func(struct waitbreak_data *pdata)
 {
 	int fd;
-	int ret;
+	int ret = 0;
 	pid_t sid;
 	struct termios oldtio, newtio;
 	sigset_t mask;
@@ -97,7 +97,6 @@ static int waitbreak_func(struct waitbreak_data *pdata)
 			if (errno == EINTR) {
 				continue;
 			} else if (errno == EAGAIN) {
-				printf("Timeout\n");
 				ret = -EAGAIN;
 				goto e_restore_tio;
 			}
@@ -107,7 +106,6 @@ static int waitbreak_func(struct waitbreak_data *pdata)
 		}
 		break;
 	} while (1);
-
 
 e_restore_tio:
 	tcflush(fd, TCIFLUSH);
@@ -163,7 +161,6 @@ static int waitbreak_exec(struct cmd *cmd)
 static int waitbreak_cleanup(struct cmd *cmd)
 {
 	pid_t ret;
-	int status = 0;
 	struct waitbreak_data *pdata;
 
 	if (!cmd->priv)
@@ -172,11 +169,20 @@ static int waitbreak_cleanup(struct cmd *cmd)
 	pdata = (struct waitbreak_data *)cmd->priv;
 
 	if (pdata->child_pid) {
-		ret = waitpid(pdata->child_pid, &status, 0);
-		if (ret == -1)
+		int status = 0;
+
+		if (waitpid(pdata->child_pid, &status, 0) < 0)
 			return -ECHILD;
+
+		if (WIFEXITED(status))
+			return WEXITSTATUS(status);
+		else if (WIFSIGNALED(status) && WTERMSIG(status) == SIGINT)
+			return 0;
+
+		return -1;
 	}
-	return status;
+
+	return 0;
 }
 
 REGISTER_CMD(
